@@ -1,9 +1,9 @@
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-COPY server/go.mod server/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY server/cmd ./cmd
-COPY server/internal ./internal
+COPY cmd ./cmd
+COPY internal ./internal
 RUN CGO_ENABLED=0 go build -o /server ./cmd
 
 FROM alpine:3.20
