@@ -26,8 +26,9 @@ func translator(h *internal.Hub, w http.ResponseWriter, r *http.Request) {
 	ch := make(chan internal.Envelope, 16)
 
 	room := r.URL.Query().Get("room")
+	name := r.URL.Query().Get("name")
 
-	client := internal.NewClient(room, h, connection, ch)
+	client := internal.NewClient(room, name, h, connection, ch)
 
 	go client.WritePump()
 

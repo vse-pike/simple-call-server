@@ -18,6 +18,7 @@ const (
 type Client struct {
 	id     string
 	room   string
+	name   string
 	hub    *Hub
 	conn   *websocket.Conn
 	send   chan Envelope
@@ -32,10 +33,11 @@ func generateID() string {
 	return hex.EncodeToString(b)
 }
 
-func NewClient(url string, hub *Hub, conn *websocket.Conn, send chan Envelope) *Client {
+func NewClient(room string, name string, hub *Hub, conn *websocket.Conn, send chan Envelope) *Client {
 	client := Client{
 		id:     generateID(),
-		room:   url,
+		room:   room,
+		name:   name,
 		conn:   conn,
 		send:   send,
 		hub:    hub,

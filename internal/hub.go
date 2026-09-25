@@ -50,17 +50,19 @@ func (h *Hub) join(c *Client) {
 	}
 
 	existing := make([]string, 0, len(room.peers))
-	for id := range room.peers {
+	existingNames := make(map[string]string, len(room.peers))
+	for id, peer := range room.peers {
 		existing = append(existing, id)
+		existingNames[id] = peer.name
 	}
 
 	room.peers[c.id] = c
 
-	h.safeSend(c, Envelope{Type: "joined", From: c.id, Peers: existing})
+	h.safeSend(c, Envelope{Type: "joined", From: c.id, Peers: existing, PeerNames: existingNames})
 
 	for _, peer := range room.peers {
 		if c.id != peer.id {
-			message := Envelope{Type: "peer-joined", From: c.id}
+			message := Envelope{Type: "peer-joined", From: c.id, Name: c.name}
 			h.safeSend(peer, message)
 		}
 	}
