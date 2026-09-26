@@ -3,12 +3,19 @@ package internal
 type Room struct {
 	id    string
 	peers map[string]*Client
+	// hostID — id того, кто создал комнату (зашёл первым). Выставляется
+	// один раз при создании Room и не меняется, даже если хост потом выйдет.
+	hostID string
 }
 
 type inbound struct {
 	client *Client
 	msg    Envelope
 }
+
+// maxRoomPeers — жёсткий лимит на комнату. Пока держим только 1-на-1
+// (mesh на N участников — отдельная, более крупная задача на будущее).
+const maxRoomPeers = 2
 
 type Hub struct {
 	rooms      map[string]*Room
@@ -43,22 +50,27 @@ func (h *Hub) join(c *Client) {
 
 	if room == nil {
 		h.rooms[roomId] = &Room{
-			id:    roomId,
-			peers: make(map[string]*Client),
+			id:     roomId,
+			peers:  make(map[string]*Client),
+			hostID: c.id,
 		}
 		room = h.rooms[roomId]
 	}
 
-	existing := make([]string, 0, len(room.peers))
-	existingNames := make(map[string]string, len(room.peers))
+	if len(room.peers) >= maxRoomPeers {
+		h.safeSend(c, Envelope{Type: "room-full"})
+		c.conn.Close()
+		return
+	}
+
+	existing := make([]Peer, 0, len(room.peers))
 	for id, peer := range room.peers {
-		existing = append(existing, id)
-		existingNames[id] = peer.name
+		existing = append(existing, Peer{ID: id, Name: peer.name, IsHost: id == room.hostID})
 	}
 
 	room.peers[c.id] = c
 
-	h.safeSend(c, Envelope{Type: "joined", From: c.id, Peers: existing, PeerNames: existingNames})
+	h.safeSend(c, Envelope{Type: "joined", From: c.id, Peers: existing, IsHost: c.id == room.hostID})
 
 	for _, peer := range room.peers {
 		if c.id != peer.id {
